@@ -59,6 +59,16 @@ function getAutoRange(gd, ax) {
     var minArray = extremes.min;
     var maxArray = extremes.max;
 
+    // It is only apply to axis type -- 'signlog' of one plot
+    if(ax.type == 'signlog'){
+        minArray.forEach((item1) => {
+          item1.val = ax.c2l(item1.val)
+        })
+        maxArray.forEach((item2) => {
+          item2.val = ax.c2l(item2.val)
+        })
+    }
+    
     if(minArray.length === 0 || maxArray.length === 0) {
         return Lib.simpleMap(ax.range, ax.r2l);
     }

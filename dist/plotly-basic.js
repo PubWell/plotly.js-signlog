@@ -51361,7 +51361,7 @@ exports.clearAxisTypes = function(gd, traces, layoutUpdate) {
             var ax = getFromTrace(gd, trace, axLetters[j]);
 
             // do not clear log type - that's never an auto result so must have been intentional
-            if(ax && ax.type !== 'log') {
+            if(ax && ax.type !== 'log' && ax.type !== 'signlog') {
                 var axAttr = ax._name;
                 var sceneName = ax._id.substr(1);
                 if(sceneName.substr(0, 5) === 'scene') {
@@ -58992,6 +58992,16 @@ function getAutoRange(gd, ax) {
     var minArray = extremes.min;
     var maxArray = extremes.max;
 
+    // It is only apply to axis type -- 'signlog' of one plot
+    if(ax.type == 'signlog'){
+        minArray.forEach((item1) => {
+          item1.val = ax.c2l(item1.val)
+        })
+        maxArray.forEach((item2) => {
+          item2.val = ax.c2l(item2.val)
+        })
+    }
+    
     if(minArray.length === 0 || maxArray.length === 0) {
         return Lib.simpleMap(ax.range, ax.r2l);
     }
@@ -61140,7 +61150,7 @@ axes.tickIncrement = function(ax, x, dtick, axrev, calendar) {
     if(tType === 'M') return Lib.incrementMonth(x, dtSigned, calendar);
 
     // Log scales: Linear, Digits
-    if(tType === 'L') return Math.log(Math.pow(10, x) + dtSigned) / Math.LN10;
+    if(tType === 'L') return ax.c2l(ax.l2c(x) + dtSigned);
 
     // log10 of 2,5,10, or all digits (logs just have to be
     // close enough to round)
@@ -74522,6 +74532,13 @@ plots.doCalcdata = function(gd, traces) {
 
     setupAxisCategories(axList, fullData, fullLayout);
 
+    // initiate bellow param before calci
+    gd._fullLayout.yaxis.extremes = [];
+    gd._fullLayout.yaxis.ptvmin = 0;
+    gd._fullLayout.yaxis.ntvmax = 0;
+    gd._fullLayout.xaxis.extremes = [];
+    gd._fullLayout.xaxis.ptvmin = 0;
+    gd._fullLayout.xaxis.ntvmax = 0;
     // 'transform' loop - must calc container traces first
     // so that if their dependent traces can get transform properly
     for(i = 0; i < fullData.length; i++) calci(i, true);

@@ -3067,6 +3067,13 @@ plots.doCalcdata = function(gd, traces) {
 
     setupAxisCategories(axList, fullData, fullLayout);
 
+    // initiate bellow param before calci
+    gd._fullLayout.yaxis.extremes = [];
+    gd._fullLayout.yaxis.ptvmin = 0;
+    gd._fullLayout.yaxis.ntvmax = 0;
+    gd._fullLayout.xaxis.extremes = [];
+    gd._fullLayout.xaxis.ptvmin = 0;
+    gd._fullLayout.xaxis.ntvmax = 0;
     // 'transform' loop - must calc container traces first
     // so that if their dependent traces can get transform properly
     for(i = 0; i < fullData.length; i++) calci(i, true);

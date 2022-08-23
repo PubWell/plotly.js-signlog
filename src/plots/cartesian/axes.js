@@ -1504,7 +1504,7 @@ axes.tickIncrement = function(ax, x, dtick, axrev, calendar) {
     if(tType === 'M') return Lib.incrementMonth(x, dtSigned, calendar);
 
     // Log scales: Linear, Digits
-    if(tType === 'L') return Math.log(Math.pow(10, x) + dtSigned) / Math.LN10;
+    if(tType === 'L') return ax.c2l(ax.l2c(x) + dtSigned);
 
     // log10 of 2,5,10, or all digits (logs just have to be
     // close enough to round)

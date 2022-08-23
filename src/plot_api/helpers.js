@@ -676,7 +676,7 @@ exports.clearAxisTypes = function(gd, traces, layoutUpdate) {
             var ax = getFromTrace(gd, trace, axLetters[j]);
 
             // do not clear log type - that's never an auto result so must have been intentional
-            if(ax && ax.type !== 'log') {
+            if(ax && ax.type !== 'log' && ax.type !== 'signlog') {
                 var axAttr = ax._name;
                 var sceneName = ax._id.substr(1);
                 if(sceneName.substr(0, 5) === 'scene') {
