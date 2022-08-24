@@ -1,5 +1,5 @@
 /**
-* plotly.js (geo) v1.0.4
+* plotly.js (geo) v1.0.5
 * Copyright 2012-2022, Plotly, Inc.
 * All rights reserved.
 * Licensed under the MIT license
@@ -75070,6 +75070,10 @@ axes.calcTicks = function calcTicks(ax, opts) {
 
     tickVals = tickVals.concat(minorTickVals);
 
+    if(ax.type == 'signlog' && startTick * endTick < 0){
+        tickVals.push({value: 0})
+    }
+
     var t, p;
     for(i = 0; i < tickVals.length; i++) {
         var _minor = tickVals[i].minor;
@@ -75117,38 +75121,38 @@ axes.calcTicks = function calcTicks(ax, opts) {
         ticksOut[0].noTick = true;
     }
 
-    if(ax.type == 'signlog'){
-        var prevTick = ticksOut.find((item) => {
-            var prevSign = Math.log(Math.abs(ax.l2c(item.x))) / Math.LN10;
-            if(Lib.mod(prevSign + 0.01, 1) < 0.1){
-                return item
-            };
-        })
+    // if(ax.type == 'signlog'){
+    //     var prevTick = ticksOut.find((item) => {
+    //         var prevSign = Math.log(Math.abs(ax.l2c(item.x))) / Math.LN10;
+    //         if(Lib.mod(prevSign + 0.01, 1) < 0.1){
+    //             return item
+    //         };
+    //     })
   
-        var tickFilter = [];
+    //     var tickFilter = [];
   
-        ticksOut.forEach((item) => {
-            var xSign = Math.log(Math.abs(ax.l2c(item.x))) / Math.LN10;
-            if(Lib.mod(xSign + 0.01, 1) < 0.1){
-                if(item.x != prevTick.x && Math.abs(item.x - prevTick.x) / Math.abs(endTick - startTick) < 0.1){
-                if(tickFilter.length && tickFilter[tickFilter.length - 1].after.x == prevTick.x){
-                    tickFilter[tickFilter.length - 1].after = item;
-                }else{
-                    tickFilter.push({prev: prevTick, after: item});
-                }
-                }
-                prevTick = item;
-            }
-        });
+    //     ticksOut.forEach((item) => {
+    //         var xSign = Math.log(Math.abs(ax.l2c(item.x))) / Math.LN10;
+    //         if(Lib.mod(xSign + 0.01, 1) < 0.1){
+    //             if(item.x != prevTick.x && Math.abs(item.x - prevTick.x) / Math.abs(endTick - startTick) < 0.1){
+    //             if(tickFilter.length && tickFilter[tickFilter.length - 1].after.x == prevTick.x){
+    //                 tickFilter[tickFilter.length - 1].after = item;
+    //             }else{
+    //                 tickFilter.push({prev: prevTick, after: item});
+    //             }
+    //             }
+    //             prevTick = item;
+    //         }
+    //     });
   
-        if(tickFilter.length){
-            var arr = ticksOut;
-            tickFilter.forEach((item) => {
-                arr = arr.filter((tick) => tick.x <= item.prev.x || tick.x >= item.after.x);
-            })
-            ticksOut = arr.concat();
-        }
-    }
+    //     if(tickFilter.length){
+    //         var arr = ticksOut;
+    //         tickFilter.forEach((item) => {
+    //             arr = arr.filter((tick) => tick.x <= item.prev.x || tick.x >= item.after.x);
+    //         })
+    //         ticksOut = arr.concat();
+    //     }
+    // }
 
     return ticksOut;
 };
@@ -75297,7 +75301,7 @@ axes.autoTicks = function(ax, roughDTick, isMinor) {
             base = getBase(10);
             ax.dtick = roundDTick(roughDTick, base, roundBase10);
         }
-    } else if(ax.type === 'log' || ax.type == 'signlog') {
+    } else if(ax.type === 'log') {
         ax.tick0 = 0;
         var rng = Lib.simpleMap(ax.range, ax.r2l);
         if(ax._isMinor) {
@@ -75330,6 +75334,20 @@ axes.autoTicks = function(ax, roughDTick, isMinor) {
         ax.tick0 = 0;
         base = 1;
         ax.dtick = roundDTick(roughDTick, base, roundAngles);
+    } else if(ax.type == 'signlog') {
+        ax.tick0 = 0;
+        var rng = Lib.simpleMap(ax.range, ax.r2l);
+        if (Math.abs(rng[1] - rng[0]) < 1) {
+            // span is less than one power of 10
+            var nt = 1.5 * Math.abs((rng[1] - rng[0]) / roughDTick);
+
+            // ticks on a linear scale, labeled fully
+            roughDTick = Math.abs(ax.l2c(rng[1]) - ax.l2c(rng[0])) / nt;
+            base = getBase(10);
+            ax.dtick = 'L' + roundDTick(roughDTick, base, roundBase10);
+        } else {
+            ax.dtick = Math.ceil(roughDTick);
+        }
     } else {
         // auto ticks always start at 0
         ax.tick0 = 0;
@@ -75428,12 +75446,20 @@ axes.tickIncrement = function(ax, x, dtick, axrev, calendar) {
         var resVal = Lib.increment(x, axSign * dtick);
   
         if(ax.type == 'signlog'){
-          var signVal = ax.l2c(resVal);
-          var logVal = Math.log(Math.abs(signVal)) / Math.LN10;
-          var sRound = Math.sign(signVal) > 0 ? Math.ceil : Math.floor;
-  
-          var newVal = sRound(logVal);
-          resVal = ax.c2l(Math.sign(signVal) * Math.pow(10, newVal));
+            if(x < -1 && resVal >= -1 && resVal < 1 || (resVal < -1 && x >= -1 && x < 1)){
+                resVal = -1;
+            }else if(x >= -1 && x < 1 && resVal > 1 || (x > 1 && resVal >= -1 && resVal < 1)){
+                resVal = 1;
+            }
+            var signVal = ax.l2c(resVal);
+            var logVal = Math.log(Math.abs(signVal)) / Math.LN10;
+            var sRound = Math.sign(signVal) > 0 ? Math.ceil : Math.floor;
+    
+            var newVal = sRound(logVal);
+            if(Math.abs(Math.round(logVal) - logVal) < Math.pow(10, -6)){
+                newVal = Math.round(logVal);
+            }
+            resVal = ax.c2l(Math.sign(signVal) * Math.pow(10, newVal));
         }
         
         return resVal;
@@ -75802,6 +75828,10 @@ function formatLog(ax, out, hover, extraPrecision, hideexp) {
     }
 
     var real = ax.l2c(x);
+    if(ax.type == 'signlog' && real == 0){
+        out.text = '0';
+        return
+    }
     var realLog = Math.log(Math.abs(real)) / Math.LN10;
 
     if(tickformat || (dtChar0 === 'L')) {
@@ -97786,7 +97816,7 @@ function getSortFunc(opts, d2c) {
 'use strict';
 
 // package version injected by `npm run preprocess`
-exports.version = '1.0.4';
+exports.version = '1.0.5';
 
 },{}]},{},[8])(8)
 });
