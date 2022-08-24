@@ -1,5 +1,5 @@
 /**
-* plotly.js (finance) v1.0.0
+* plotly.js (finance) v1.0.4
 * Copyright 2012-2022, Plotly, Inc.
 * All rights reserved.
 * Licensed under the MIT license
@@ -62087,6 +62087,39 @@ axes.calcTicks = function calcTicks(ax, opts) {
         ticksOut[0].noTick = true;
     }
 
+    if(ax.type == 'signlog'){
+        var prevTick = ticksOut.find((item) => {
+            var prevSign = Math.log(Math.abs(ax.l2c(item.x))) / Math.LN10;
+            if(Lib.mod(prevSign + 0.01, 1) < 0.1){
+                return item
+            };
+        })
+  
+        var tickFilter = [];
+  
+        ticksOut.forEach((item) => {
+            var xSign = Math.log(Math.abs(ax.l2c(item.x))) / Math.LN10;
+            if(Lib.mod(xSign + 0.01, 1) < 0.1){
+                if(item.x != prevTick.x && Math.abs(item.x - prevTick.x) / Math.abs(endTick - startTick) < 0.1){
+                if(tickFilter.length && tickFilter[tickFilter.length - 1].after.x == prevTick.x){
+                    tickFilter[tickFilter.length - 1].after = item;
+                }else{
+                    tickFilter.push({prev: prevTick, after: item});
+                }
+                }
+                prevTick = item;
+            }
+        });
+  
+        if(tickFilter.length){
+            var arr = ticksOut;
+            tickFilter.forEach((item) => {
+                arr = arr.filter((tick) => tick.x <= item.prev.x || tick.x >= item.after.x);
+            })
+            ticksOut = arr.concat();
+        }
+    }
+
     return ticksOut;
 };
 
@@ -93010,7 +93043,7 @@ function getSortFunc(opts, d2c) {
 'use strict';
 
 // package version injected by `npm run preprocess`
-exports.version = '1.0.0';
+exports.version = '1.0.4';
 
 },{}]},{},[12])(12)
 });

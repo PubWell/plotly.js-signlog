@@ -1,6 +1,6 @@
 {
   "name": "plotly.js-signlog",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Plotly.js distributed bundle with type 'signlog'.",
   "license": "MIT",
   "main": "plotly.js",
